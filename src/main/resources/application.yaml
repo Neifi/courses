@@ -1,0 +1,29 @@
+
+server:
+  port: 8081
+
+spring:
+  application:
+    name: "courses"
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3307/courses?serverTimezone=UTC
+    username: admin
+    password: admin
+  kafka:
+    bootstrap-servers: localhost:9092
+  data:
+    mongodb:
+      uri: mongodb://admin:admin@localhost:27017/admin?authSource=admin
+      uuid-representation: STANDARD
+    redis:
+      host: localhost
+      port: 6379
+
+debezium:
+  connector:
+    class: io.debezium.connector.mongodb.MongoDbConnector
+  offset:
+    storage: org.apache.kafka.connect.storage.FileOffsetBackingStore
+    storage.file.filename: /path/to/offset/storage
+    flush.interval.ms: 60000
