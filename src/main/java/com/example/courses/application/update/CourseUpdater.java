@@ -1,6 +1,6 @@
 package com.example.courses.application.update;
 
-import com.example.courses.application.exception.CourseNotFoundException;
+import com.example.courses.application.exceptions.CourseNotFoundException;
 import com.example.courses.domain.aggregates.Course;
 import com.example.courses.domain.service.UpdateCourseService;
 import com.example.courses.infrastructure.persistence.sql.DomainEventEntity;
