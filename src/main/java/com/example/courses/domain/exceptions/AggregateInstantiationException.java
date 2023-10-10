@@ -1,6 +1,6 @@
 package com.example.courses.domain.exceptions;
 
-public class AggregateInstantiationException extends RuntimeException {
+public class AggregateInstantiationException extends IllegalArgumentException {
     public AggregateInstantiationException() {
     }
 

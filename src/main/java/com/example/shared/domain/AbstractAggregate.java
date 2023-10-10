@@ -22,7 +22,7 @@ public abstract class AbstractAggregate<A extends AbstractAggregate<A>> {
 
     protected abstract A apply(List<DomainEvent> domainEvent);
 
-    public Collection<DomainEvent> pullDomainEvents() {
+    public List<DomainEvent> pullDomainEvents() {
         List<DomainEvent> events = new ArrayList<>(domainEvents);
         domainEvents.clear();
         return events;

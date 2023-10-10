@@ -1,13 +1,14 @@
 package com.example.courses.domain.aggregates;
 
-import com.example.courses.domain.entities.CourseFinishedAchievement;
+import com.example.courses.domain.entities.Achievement;
 import com.example.courses.domain.entities.CourseModule;
-import com.example.courses.domain.entities.CourseStartedAchievement;
 import com.example.courses.domain.entities.Creator;
 import com.example.courses.domain.events.CourseCreatedEvent;
 import com.example.courses.domain.events.CourseDeletedEvent;
 import com.example.courses.domain.events.CourseUpdatedEvent;
 import com.example.courses.domain.exceptions.AggregateInstantiationException;
+import com.example.courses.domain.exceptions.CourseModuleNotFoundException;
+import com.example.courses.domain.exceptions.EmptyCourseDomainEventsException;
 import com.example.courses.domain.vo.Email;
 import com.example.courses.domain.vo.ModuleContent;
 import com.example.shared.domain.DomainEvent;
@@ -16,14 +17,13 @@ import com.example.shared.domain.exceptions.DeletedAggregateException;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class CourseTest {
-
 
     @Test
     public void givenCourseModule_WhenAdding_ThenItShouldBeAddedToModulesList() {
@@ -34,13 +34,11 @@ class CourseTest {
                 "Intro",
                 Duration.ofMinutes(2),
                 ModuleContent.Builder().build());
-        Course course = Course.create(creator, name,List.of(courseModule));
+        Course course = Course.create(creator, name, List.of(courseModule));
 
 
         course.addModule(courseModule);
-
-        assertFalse(course.modules().isEmpty());
-        assertEquals(courseModule, course.modules().get(0));
+        assertEquals(courseModule, course.moduleById(moduleID));
     }
 
     @Test
@@ -52,7 +50,7 @@ class CourseTest {
                 "Intro",
                 Duration.ofMinutes(2),
                 ModuleContent.Builder().build());
-        Course course = Course.create(creator, name,List.of(courseModule));
+        Course course = Course.create(creator, name, List.of(courseModule));
 
         assertThrows(IllegalArgumentException.class, () -> course.addModule(null));
     }
@@ -65,32 +63,19 @@ class CourseTest {
                 "Intro",
                 Duration.ofMinutes(2),
                 ModuleContent.Builder().build());
+
         CourseModule courseModule2 = new CourseModule(UUID.randomUUID(),
-                "Intro",
+                "First",
                 Duration.ofMinutes(2),
                 ModuleContent.Builder().build());
-        Course course = Course.create(creator, name,List.of(courseModule));
+        Course course = Course.create(creator, name, List.of(courseModule));
         course.addModule(courseModule2);
+
         course.deleteModule(courseModule);
 
-        assertFalse(course.modules().contains(courseModule));
-        assertTrue(course.modules().contains(courseModule2));
-    }
+        assertThrows(CourseModuleNotFoundException.class, () -> course.moduleById(courseModule.moduleID()));
 
-    @Test
-    public void givenCourseWithModules_WhenAddingDuplicatedModule_ThenItShouldNotBeAdded() {
-        String name = "name";
-        Creator creator = Creator.with(new Email("email@mail.com"));
-        CourseModule courseModule = new CourseModule(UUID.randomUUID(),
-                "Intro",
-                Duration.ofMinutes(2),
-                ModuleContent.Builder().build());
-        Course course = Course.create(creator, name,List.of(courseModule));
-
-        course.addModule(courseModule);
-
-        assertTrue(course.modules().contains(courseModule));
-        assertEquals(1,course.modules().size());
+        assertEquals(courseModule2,course.moduleById(courseModule2.moduleID()));
     }
 
     @Test
@@ -102,10 +87,10 @@ class CourseTest {
                 "Intro",
                 Duration.ofMinutes(2),
                 ModuleContent.Builder().build());
-        Course course = Course.create(creator, name,List.of(courseModule));
+        Course course = Course.create(creator, name, List.of(courseModule));
 
-        assertThrows(IllegalStateException.class,() -> course.deleteModule(courseModule));
-        assertFalse(course.modules().isEmpty());
+        assertThrows(IllegalStateException.class, () -> course.deleteModule(courseModule));
+        assertEquals(courseModule,course.moduleById(moduleID));
     }
 
     @Test
@@ -117,7 +102,7 @@ class CourseTest {
                 "Intro",
                 Duration.ofMinutes(2),
                 ModuleContent.Builder().build());
-        Course course = Course.create(creator, name,List.of(courseModule));
+        Course course = Course.create(creator, name, List.of(courseModule));
         course.addModule(courseModule);
 
         assertThrows(IllegalArgumentException.class, () -> course.deleteModule(null));
@@ -133,22 +118,22 @@ class CourseTest {
                 Duration.ofMinutes(2),
                 ModuleContent.Builder().build());
 
-        Course course = Course.create(creator, name,List.of(courseModule));
-        DomainEvent expectedCourseCreatedEvent = new CourseCreatedEvent(course.id(),
+        Course course = Course.create(creator, name, List.of(courseModule));
+        CourseCreatedEvent expectedCourseCreatedEvent = new CourseCreatedEvent(course.id(),
                 creator, name,
-                List.of(
-                        CourseStartedAchievement.create(),
-                        CourseFinishedAchievement.create()
+                Set.of(
+                        Achievement.courseFinished(),
+                        Achievement.courseStarted()
                 ),
                 1
         );
 
         assertEquals(name, course.name());
         assertEquals(creator, course.creator());
-        Collection<DomainEvent> domainEvents = course.pullDomainEvents();
+        List<DomainEvent> domainEvents = course.pullDomainEvents();
         assertFalse(domainEvents.isEmpty());
         assertEquals(creator, course.creator());
-        assertEquals(expectedCourseCreatedEvent.toString(), domainEvents.stream().toList().get(0).toString());
+        assertTrue(domainEvents.contains(expectedCourseCreatedEvent));
     }
 
     @Test
@@ -161,7 +146,7 @@ class CourseTest {
                 ModuleContent.Builder().build());
 
         Creator creator = Creator.with(new Email("email@mail.com"));
-        assertThrows(IllegalArgumentException.class, () -> Course.create(creator, name,List.of(courseModule)));
+        assertThrows(IllegalArgumentException.class, () -> Course.create(creator, name, List.of(courseModule)));
     }
 
     @Test
@@ -172,7 +157,7 @@ class CourseTest {
                 Duration.ofMinutes(2),
                 ModuleContent.Builder().build());
         String name = "name";
-        assertThrows(IllegalArgumentException.class, () -> Course.create(null, name,List.of(courseModule)));
+        assertThrows(IllegalArgumentException.class, () -> Course.create(null, name, List.of(courseModule)));
     }
 
     @Test
@@ -184,7 +169,7 @@ class CourseTest {
                 "Intro",
                 Duration.ofMinutes(2),
                 ModuleContent.Builder().build());
-        Course course = Course.create(creator, name,List.of(courseModule));
+        Course course = Course.create(creator, name, List.of(courseModule));
 
         String newName = "name2";
         course.updateName(newName);
@@ -201,7 +186,7 @@ class CourseTest {
                 "Intro",
                 Duration.ofMinutes(2),
                 ModuleContent.Builder().build());
-        Course course = Course.create(creator, name,List.of(courseModule));
+        Course course = Course.create(creator, name, List.of(courseModule));
 
         assertThrows(IllegalArgumentException.class, () -> {
             course.updateName("");
@@ -214,9 +199,9 @@ class CourseTest {
         Creator creator = Creator.with(new Email("email@mail.com"));
         DomainEvent courseCreatedEvent = new CourseCreatedEvent(courseId,
                 creator, "name",
-                List.of(
-                        CourseStartedAchievement.create(),
-                        CourseFinishedAchievement.create()
+                Set.of(
+                        Achievement.courseStarted(),
+                        Achievement.courseFinished()
                 ),
                 1
         );
@@ -235,9 +220,9 @@ class CourseTest {
         Creator creator = Creator.with(new Email("email@mail.com"));
         DomainEvent courseCreatedEvent = new CourseCreatedEvent(courseId,
                 creator, "name",
-                List.of(
-                        CourseStartedAchievement.create(),
-                        CourseFinishedAchievement.create()
+                Set.of(
+                        Achievement.courseStarted(),
+                        Achievement.courseFinished()
                 ),
                 1
         );
@@ -256,7 +241,7 @@ class CourseTest {
                 "Intro",
                 Duration.ofMinutes(2),
                 ModuleContent.Builder().build());
-        Course course = Course.create(creator, "course",List.of(courseModule));
+        Course course = Course.create(creator, "course", List.of(courseModule));
         course.delete();
 
         assertThrows(DeletedAggregateException.class, () -> course.updateName("name"));
@@ -270,10 +255,17 @@ class CourseTest {
                 "Intro",
                 Duration.ofMinutes(2),
                 ModuleContent.Builder().build());
-        Course course = Course.create(creator, "course",List.of(courseModule));
+        Course course = Course.create(creator, "course", List.of(courseModule));
         course.delete();
 
         assertThrows(AggregateAlreadyDeletedException.class, course::delete);
+    }
+
+    @Test
+    public void givenEmptyEvents_WhenRehydrating_ThenExceptionShouldBeThrown() {
+        assertThrows(EmptyCourseDomainEventsException.class, () -> {
+            Course.rehydrateFromEvents(List.of());
+        });
     }
 
     @Test
@@ -294,9 +286,9 @@ class CourseTest {
         Creator creator = Creator.with(new Email("email@mail.com"));
         DomainEvent courseCreatedEvent = new CourseCreatedEvent(courseId,
                 creator, "name",
-                List.of(
-                        CourseStartedAchievement.create(),
-                        CourseFinishedAchievement.create()
+                Set.of(
+                        Achievement.courseStarted(),
+                        Achievement.courseFinished()
                 ),
                 1
         );
@@ -318,9 +310,9 @@ class CourseTest {
         Creator creator = Creator.with(new Email("email@mail.com"));
         DomainEvent courseCreatedEvent = new CourseCreatedEvent(courseId,
                 creator, "name",
-                List.of(
-                        CourseStartedAchievement.create(),
-                        CourseFinishedAchievement.create()
+                Set.of(
+                        Achievement.courseStarted(),
+                        Achievement.courseFinished()
                 ),
                 1
         );

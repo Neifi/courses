@@ -2,6 +2,7 @@ package com.example.courses.application.update;
 
 import com.example.courses.application.exceptions.CourseNotFoundException;
 import com.example.courses.domain.aggregates.Course;
+import com.example.courses.domain.repositories.CourseRepository;
 import com.example.courses.domain.service.UpdateCourseService;
 import com.example.courses.infrastructure.persistence.sql.DomainEventEntity;
 import com.example.courses.infrastructure.persistence.sql.DomainEventFactory;
@@ -16,13 +17,14 @@ import java.util.UUID;
 
 public class CourseUpdater implements UpdateCourseService {
 
-    private final DomainEventBus eventBus;
+
     private final JpaDomainEventRepository domainEventRepository;
     private final JsonSerDe<DomainEvent> jsonSerDe;
+    private final CourseRepository courseRepository;
 
     public CourseUpdater(DomainEventBus eventBus, JpaDomainEventRepository domainEventRepository,
-                         JsonSerDe<DomainEvent> jsonSerDe) {
-        this.eventBus = eventBus;
+                         JsonSerDe<DomainEvent> jsonSerDe, CourseRepository courseRepository) {
+        this.courseRepository = courseRepository;
         this.domainEventRepository = domainEventRepository;
         this.jsonSerDe = jsonSerDe;
     }
@@ -41,7 +43,7 @@ public class CourseUpdater implements UpdateCourseService {
         Course course = Course.rehydrateFromEvents(domainEvents);
         course.updateName(courseName);
 
-        eventBus.publish(new ArrayList<>(course.pullDomainEvents()));
+        courseRepository.updateCourse(course);
     }
 
 }

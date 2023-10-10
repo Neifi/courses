@@ -1,27 +1,35 @@
-package com.example.courses.domain.vo;
+package com.example.courses.domain.entities;
 
 import com.example.courses.domain.exceptions.MaxPointsPerAchievementException;
+import com.example.courses.domain.vo.Points;
 
 import java.util.Objects;
+import java.util.UUID;
 
 public class Achievement {
-    private static final int MAX_POINTS = 10;
+    private static final int MAX_POINTS = 100;
+    private UUID achievementID;
     private String name;
     private Points points;
 
     private Achievement() {
     }
 
-    protected Achievement(String name, Points points) {
+    public Achievement(UUID achievementID, String name, Points points) {
+        this.achievementID = achievementID;
+        if (points.quantity() > MAX_POINTS) {
+            throw new MaxPointsPerAchievementException("max point per achievement is " + MAX_POINTS);
+        }
         this.name = name;
         this.points = points;
     }
 
-    public static Achievement create(String name, int points) {
-        if (points > MAX_POINTS) {
-            throw new MaxPointsPerAchievementException("max point per achievement is " + MAX_POINTS);
-        }
-        return new Achievement(name, new Points(points));
+    public static  Achievement courseStarted() {
+        return new Achievement(UUID.randomUUID(),"Course Started",new Points(50));
+    }
+
+    public static  Achievement courseFinished() {
+        return new Achievement(UUID.randomUUID(),"Course Finished",new Points(100));
     }
 
     public String name() {

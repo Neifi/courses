@@ -13,4 +13,17 @@ public class Points {
     public int quantity() {
         return quantity;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Points points)) return false;
+
+        return quantity == points.quantity;
+    }
+
+    @Override
+    public int hashCode() {
+        return quantity;
+    }
 }

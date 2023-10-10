@@ -1,6 +1,7 @@
 package com.example.courses.application.remove;
 
 import com.example.courses.domain.aggregates.Course;
+import com.example.courses.domain.repositories.CourseRepository;
 import com.example.courses.domain.service.DeleteCourseService;
 import com.example.courses.infrastructure.persistence.sql.DomainEventEntity;
 import com.example.courses.infrastructure.persistence.sql.DomainEventFactory;
@@ -15,28 +16,22 @@ import java.util.UUID;
 
 public class CourseRemover implements DeleteCourseService {
 
-    private final DomainEventBus eventBus;
     private final JpaDomainEventRepository domainEventRepository;
     private final JsonSerDe<DomainEvent> jsonSerDe;
+    private final CourseRepository courseRepository;
 
-    public CourseRemover(DomainEventBus eventBus, JpaDomainEventRepository domainEventRepository, JsonSerDe<DomainEvent> jsonSerDe) {
-        this.eventBus = eventBus;
+    public CourseRemover(JpaDomainEventRepository domainEventRepository, JsonSerDe<DomainEvent> jsonSerDe, CourseRepository courseRepository) {
         this.domainEventRepository = domainEventRepository;
         this.jsonSerDe = jsonSerDe;
+        this.courseRepository = courseRepository;
     }
 
     @Override
     public void deleteCourse(UUID id) {
-
-        List<DomainEventEntity> domainEventEntities = this.domainEventRepository
-                .findAllByAggregateId(id.toString());
-
-        List<DomainEvent> domainEvents = DomainEventFactory.buildDomaintEvents(domainEventEntities);
-
-        Course course = Course.rehydrateFromEvents(domainEvents);
+        Course course = courseRepository.findById(id);
         course.delete();
 
-        eventBus.publish(new ArrayList<>(course.pullDomainEvents()));
+        this.courseRepository.deleteCourse(course);
     }
 
 }

@@ -2,19 +2,16 @@ package com.example.courses.infrastructure.spring;
 
 import com.example.courses.application.CourseServiceImpl;
 import com.example.courses.application.create.CourseCreator;
+import com.example.courses.application.invite.CollaboratorInviter;
 import com.example.courses.application.remove.CourseRemover;
 import com.example.courses.application.update.CourseUpdater;
 import com.example.courses.domain.events.CourseCreatedEvent;
 import com.example.courses.domain.events.CourseDeletedEvent;
 import com.example.courses.domain.events.CourseUpdatedEvent;
-import com.example.courses.domain.service.CourseService;
-import com.example.courses.domain.service.CreateCourseService;
-import com.example.courses.domain.service.DeleteCourseService;
-import com.example.courses.domain.service.UpdateCourseService;
-import com.example.courses.infrastructure.persistence.sql.JPACourseCreatedEventHandler;
-import com.example.courses.infrastructure.persistence.sql.JPACourseDeletedEventHandler;
-import com.example.courses.infrastructure.persistence.sql.JPACourseUpdatedEventHandler;
-import com.example.courses.infrastructure.persistence.sql.JpaDomainEventRepository;
+import com.example.courses.domain.repositories.CollaboratorRepository;
+import com.example.courses.domain.repositories.CourseRepository;
+import com.example.courses.domain.service.*;
+import com.example.courses.infrastructure.persistence.sql.*;
 import com.example.shared.domain.DomainEvent;
 import com.example.shared.domain.DomainEventBus;
 import com.example.shared.domain.InMemoryDomainEventBus;
@@ -68,34 +65,51 @@ public class Configuration {
     }
 
     @Bean
-    public CreateCourseService courseCreator(DomainEventBus domainEventBus) {
-        return new CourseCreator(domainEventBus);
+    public CourseRepository courseRepository(DomainEventBus domainEventBus, JpaDomainEventRepository jpaDomainEventRepository) {
+        return new CourseRepositoryImpl(domainEventBus, jpaDomainEventRepository);
+    }
+
+    @Bean
+    public CreateCourseService courseCreator(CourseRepository courseRepository) {
+        return new CourseCreator(courseRepository);
     }
 
     @Bean
     public UpdateCourseService courseUpdater(DomainEventBus domainEventBus,
                                              JpaDomainEventRepository jpaDomainEventRepository,
-                                             JsonSerDe<DomainEvent> jsonSerDe) {
-        return new CourseUpdater(domainEventBus, jpaDomainEventRepository, jsonSerDe);
+                                             JsonSerDe<DomainEvent> jsonSerDe,
+                                             CourseRepository courseRepository) {
+        return new CourseUpdater(domainEventBus, jpaDomainEventRepository, jsonSerDe, courseRepository);
     }
 
     @Bean
-    public DeleteCourseService courseRemover(DomainEventBus domainEventBus,
-                                             JpaDomainEventRepository jpaDomainEventRepository,
-                                             JsonSerDe<DomainEvent> jsonSerDe) {
-        return new CourseRemover(domainEventBus, jpaDomainEventRepository, jsonSerDe);
+    public DeleteCourseService courseRemover(JpaDomainEventRepository jpaDomainEventRepository,
+                                             JsonSerDe<DomainEvent> jsonSerDe,
+                                             CourseRepository courseRepository) {
+        return new CourseRemover(jpaDomainEventRepository, jsonSerDe, courseRepository);
+    }
+
+    @Bean
+    public CollaboratorRepository collaboratorRepository(){
+        return new CollaboratorRepositoryImpl();
+    }
+
+    @Bean
+    public InviteCollaboratorService inviteCollaboratorService(CourseRepository courseRepository,CollaboratorRepository collaboratorRepository) {
+        return new CollaboratorInviter(courseRepository,collaboratorRepository);
     }
 
     @Bean
     public CourseService courseService(
             CreateCourseService createCourseService,
             DeleteCourseService deleteCourseService,
-            UpdateCourseService updateCourseService
+            UpdateCourseService updateCourseService,
+            InviteCollaboratorService inviteCollaboratorService
     ) {
         return new CourseServiceImpl(
                 createCourseService,
                 deleteCourseService,
-                updateCourseService
-        );
+                updateCourseService,
+                inviteCollaboratorService);
     }
 }

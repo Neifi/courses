@@ -15,6 +15,6 @@ public class CreateCourseCommandHandler implements CommandHandler<CompletableFut
 
     @Override
     public CompletableFuture<Void> apply(CreateCourseCommand command) {
-        return CompletableFuture.runAsync(() -> createCourseService.createCourse(command.courseName(),command.courseName()));
+        return CompletableFuture.runAsync(() -> createCourseService.createCourse(command.courseName(),command.courseName(),command.modules()));
     }
 }

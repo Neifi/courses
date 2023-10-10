@@ -1,21 +1,20 @@
 package com.example.courses.domain.events;
 
-import com.example.courses.domain.vo.Achievement;
+import com.example.courses.domain.entities.Achievement;
 import com.example.courses.domain.entities.Creator;
 import com.example.shared.domain.DomainEvent;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class CourseCreatedEvent extends DomainEvent {
     private UUID courseId;
     private String courseName;
-
-    private List<Achievement> achievements;
     private Creator creator;
     private int version;
+    private Set<Achievement> achievements;
 
-    public CourseCreatedEvent(UUID courseId, Creator creator, String courseName, List<Achievement> achievements, int version) {
+
+    public CourseCreatedEvent(UUID courseId, Creator creator, String courseName, Set<Achievement> achievements, int version) {
         this.courseId = courseId;
         this.creator = creator;
         this.courseName = courseName;
@@ -57,7 +56,7 @@ public class CourseCreatedEvent extends DomainEvent {
                 + "}";
     }
 
-    public List<Achievement> achievements() {
+    public Set<Achievement> achievements() {
         return achievements;
     }
 
@@ -67,17 +66,19 @@ public class CourseCreatedEvent extends DomainEvent {
         if (!(o instanceof CourseCreatedEvent that)) return false;
 
         if (version != that.version) return false;
-        if (!courseId.equals(that.courseId)) return false;
-        if (!courseName.equals(that.courseName)) return false;
-        return achievements.equals(that.achievements);
+        if (!Objects.equals(courseId, that.courseId)) return false;
+        if (!Objects.equals(courseName, that.courseName)) return false;
+        if (!Objects.equals(creator, that.creator)) return false;
+        return Objects.equals(achievements, that.achievements);
     }
 
     @Override
     public int hashCode() {
-        int result = courseId.hashCode();
-        result = 31 * result + courseName.hashCode();
-        result = 31 * result + achievements.hashCode();
+        int result = courseId != null ? courseId.hashCode() : 0;
+        result = 31 * result + (courseName != null ? courseName.hashCode() : 0);
+        result = 31 * result + (creator != null ? creator.hashCode() : 0);
         result = 31 * result + version;
+        result = 31 * result + (achievements != null ? achievements.hashCode() : 0);
         return result;
     }
 }

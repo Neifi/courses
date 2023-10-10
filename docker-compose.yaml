@@ -25,25 +25,6 @@ services:
     volumes:
       - mysql_courses_data:/var/lib/mysql
 
-  mongo:
-    image: mongo
-    container_name: mongo-courses
-    restart: always
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin
-      MONGO_INITDB_DATABASE: courses
-    volumes:
-      - mongo_courses_data:/var/lib/mongo
-  redis:
-    container_name: redis
-    image: redis:7.0.5-alpine
-    ports:
-      - "6379:6379"
-    command: [ "redis-server", "--requirepass", "SUPER_SECRET_PASSWORD" ]
-
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     container_name: zookeper-courses
@@ -76,5 +57,4 @@ services:
 
 volumes:
   mysql_courses_data:
-  mongo_courses_data:
   grafana_data:

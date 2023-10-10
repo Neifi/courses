@@ -1,6 +1,6 @@
 package com.example.courses.domain.service;
 
-import com.example.courses.domain.vo.Achievement;
+import com.example.courses.domain.entities.Achievement;
 
 import java.util.List;
 import java.util.UUID;

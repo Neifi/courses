@@ -1,23 +1,19 @@
 package com.example.courses.domain.aggregates;
 
-import com.example.courses.domain.entities.CourseFinishedAchievement;
 import com.example.courses.domain.entities.CourseModule;
-import com.example.courses.domain.entities.CourseStartedAchievement;
 import com.example.courses.domain.entities.Creator;
-import com.example.courses.domain.events.CourseCreatedEvent;
-import com.example.courses.domain.events.CourseDeletedEvent;
-import com.example.courses.domain.events.CourseUpdatedEvent;
-import com.example.courses.domain.events.EventType;
+import com.example.courses.domain.events.*;
 import com.example.courses.domain.exceptions.AggregateInstantiationException;
-import com.example.courses.domain.vo.Achievement;
+import com.example.courses.domain.entities.Achievement;
+import com.example.courses.domain.exceptions.CourseModuleNotFoundException;
+import com.example.courses.domain.exceptions.EmptyCourseDomainEventsException;
+import com.example.courses.domain.vo.Email;
 import com.example.shared.domain.AbstractAggregate;
 import com.example.shared.domain.DomainEvent;
 import com.example.shared.domain.exceptions.AggregateAlreadyDeletedException;
 import com.example.shared.domain.exceptions.DeletedAggregateException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class Course extends AbstractAggregate<Course> {
 
@@ -27,12 +23,9 @@ public class Course extends AbstractAggregate<Course> {
     private boolean deleted;
 
     private Creator creator;
-    private List<Achievement> achievements = new ArrayList<>(
-            List.of(
-                    CourseStartedAchievement.create(),
-                    CourseFinishedAchievement.create())
-    );
-    private List<CourseModule> courseModules = new ArrayList<>();
+    private Set<Achievement> achievements = new HashSet<>();
+
+    private Set<CourseModule> courseModules = new HashSet<>();
 
     public static Course rehydrateFromEvents(List<DomainEvent> domainEvent) {
         return new Course().apply(domainEvent);
@@ -49,6 +42,8 @@ public class Course extends AbstractAggregate<Course> {
         validateCourseName(name);
         validateCourseModules(courseModules);
         courseModules.forEach(this::addToModules);
+        achievements.add(Achievement.courseStarted());
+        achievements.add(Achievement.courseFinished());
         this.name = name;
         this.id = UUID.randomUUID();
         this.creator = creator;
@@ -106,7 +101,7 @@ public class Course extends AbstractAggregate<Course> {
         if (this.courseModules.size() >= MAX_MODULES) {
             throw new IllegalArgumentException("maximum number of modules reached");
         }
-        if (this.courseModules.contains(courseModule)){
+        if (this.courseModules.contains(courseModule)) {
             return;
         }
         courseModules.add(courseModule);
@@ -116,15 +111,20 @@ public class Course extends AbstractAggregate<Course> {
         if (courseModule == null) {
             throw new IllegalArgumentException("null moduleID");
         }
-        if (this.courseModules.size() == 1){
+        if (this.courseModules.size() == 1) {
             throw new IllegalStateException("course must have at least one module");
         }
         courseModules.remove(courseModule);
     }
 
+    public void inviteCollaborator(Email email) {
+        registerEvent(new CollaboratorInvitedEvent(this.id, email));
+    }
+
+
     @Override
     protected Course apply(List<DomainEvent> courseDomainEvent) {
-        //This always is O(1)
+        if (courseDomainEvent.isEmpty()) throw new EmptyCourseDomainEventsException();
         if (courseDomainEvent.stream()
                 .anyMatch(domainEvent -> EventType.COURSE_CREATED.equals(domainEvent.type()))) {
 
@@ -190,9 +190,16 @@ public class Course extends AbstractAggregate<Course> {
         return this.creator;
     }
 
-    public List<CourseModule> modules() {
-        return this.courseModules;
-    }
+    public CourseModule moduleById(UUID moduleID) {
+        Optional<CourseModule> first = this.courseModules
+                .stream()
+                .filter(courseModule -> courseModule.moduleID().equals(moduleID))
+                .findFirst();
+        if (first.isEmpty()) {
+            throw new CourseModuleNotFoundException();
+        }
 
+        return first.get();
+    }
 
 }

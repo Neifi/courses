@@ -21,7 +21,7 @@ public class CourseCreatorController {
 
     @PostMapping()
     public ResponseEntity<?> createCourse(@RequestBody CourseJsonRequest request) {
-        CreateCourseCommand createCourseCommand = new CreateCourseCommand(request.creatorEmail(),request.name());
+        CreateCourseCommand createCourseCommand = new CreateCourseCommand(request.creatorEmail(),request.name(),request.modules());
         commandBus.executeCommand(createCourseCommand);
 
         return ResponseEntity.status(201).build();

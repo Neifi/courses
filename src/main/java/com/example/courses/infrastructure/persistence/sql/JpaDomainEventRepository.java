@@ -1,5 +1,8 @@
 package com.example.courses.infrastructure.persistence.sql;
 
+import com.example.courses.domain.aggregates.Course;
+import com.example.courses.domain.repositories.CourseRepository;
+import com.example.shared.domain.DomainEvent;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,7 +22,6 @@ public interface JpaDomainEventRepository extends JpaRepository<DomainEventEntit
 
     List<DomainEventEntity> findAllByAggregateIdOrderByVersion(String id);
 
-    @Transactional
     default void saveDomainEvent(DomainEventEntity domainEventEntity) {
         int currentVersion = domainEventEntity.getVersion();
         String aggregateId = domainEventEntity.getAggregateId();
@@ -40,6 +42,5 @@ public interface JpaDomainEventRepository extends JpaRepository<DomainEventEntit
 
     @Query("SELECT MAX(e.version) FROM DomainEventEntity e WHERE e.aggregateId = :aggregateId")
     Optional<Integer> findLastVersionByAggregateId(@Param("aggregateId") String aggregateId);
-
 
 }

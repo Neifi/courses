@@ -58,4 +58,7 @@ public class Collaborator {
         return this.email;
     }
 
+    public UUID ID() {
+        return courseID;
+    }
 }
